@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kampüs Yolu - Bağlantı Testi</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test-container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .test-item { margin: 15px 0; padding: 10px; border-left: 4px solid #ddd; }
+        .test-item.pass { border-left-color: green; background: #f0fff0; }
+        .test-item.fail { border-left-color: red; background: #fff0f0; }
+        .test-item.loading { border-left-color: orange; background: #fffbf0; }
+        button { padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .output { background: #f0f0f0; padding: 10px; border-radius: 4px; margin-top: 5px; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Kampüs Yolu - Bağlantı & Backend Testi</h1>
+        <button onclick="runTests()">🚀 Tüm Testleri Çalıştır</button>
+        
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        const API_ROOT = (() => {
+            const path = window.location.pathname.replace(/\\/g, '/');
+            const directory = path.endsWith('/') ? path : path.substring(0, path.lastIndexOf('/') + 1);
+            return window.location.origin + directory + 'backend/';
+        })();
+
+        async function runTests() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '';
+            
+            const tests = [
+                { name: 'API Root Kontrolü', fn: testApiRoot },
+                { name: 'Backend Ulaşılabilirlik (debug.php)', fn: testDebugEndpoint },
+                { name: 'Veritabanı Bağlantısı', fn: testDatabaseConnection },
+                { name: 'UTF-8 Charset Kontrolü', fn: testCharset },
+                { name: 'Kayıt Endpoint Testi', fn: testRegisterEndpoint },
+                { name: 'Login Endpoint Testi', fn: testLoginEndpoint },
+            ];
+
+            for (const test of tests) {
+                await addTestResult(resultsDiv, test.name, test.fn);
+            }
+        }
+
+        async function addTestResult(container, name, testFn) {
+            const div = document.createElement('div');
+            div.className = 'test-item loading';
+            div.innerHTML = `<strong>⏳ ${name}</strong><div class="output">Yükleniyor...</div>`;
+            container.appendChild(div);
+
+            try {
+                const result = await testFn();
+                div.className = result.pass ? 'test-item pass' : 'test-item fail';
+                div.innerHTML = `<strong>${result.pass ? '✅' : '❌'} ${name}</strong><div class="output">${result.message}</div>`;
+            } catch (e) {
+                div.className = 'test-item fail';
+                div.innerHTML = `<strong>❌ ${name}</strong><div class="output">Hata: ${e.message}</div>`;
+            }
+        }
+
+        async function testApiRoot() {
+            return {
+                pass: true,
+                message: `API Root: <strong>${API_ROOT}</strong><br>Protokol: ${window.location.protocol}<br>Origin: ${window.location.origin}`
+            };
+        }
+
+        async function testDebugEndpoint() {
+            const response = await fetch(API_ROOT + 'debug.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ test: 'debug' })
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error);
+            return {
+                pass: true,
+                message: `Backend ulaşılabilir! PHP Versiyonu: ${data.debug.php_version}<br>Sunucu Saati: ${data.debug.server_time}`
+            };
+        }
+
+        async function testDatabaseConnection() {
+            const response = await fetch(API_ROOT + 'get_interests.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error);
+            return {
+                pass: true,
+                message: `Veritabanı bağlantısı başarılı! Kategoriler yüklendi.`
+            };
+        }
+
+        async function testCharset() {
+            const response = await fetch(API_ROOT + 'get_interests.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+            const hasTurkish = JSON.stringify(data).includes('ü') || JSON.stringify(data).includes('ş');
+            return {
+                pass: hasTurkish,
+                message: hasTurkish ? 'UTF-8 Charset doğru çalışıyor! Türkçe karakterler görülüyor.' : 'Charset sorunları olabilir.'
+            };
+        }
+
+        async function testRegisterEndpoint() {
+            const testEmail = `test_${Date.now()}@test.com`;
+            const response = await fetch(API_ROOT + 'register.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    eposta: testEmail,
+                    sifre: 'Test1234',
+                    sifreTekrar: 'Test1234',
+                    display_name: 'Test Kullanıcı',
+                    gender: 'belirtmek_istemiyorum'
+                })
+            });
+            const data = await response.json();
+            return {
+                pass: data.success,
+                message: data.success ? 'Kayıt endpoint başarılı!' : `Hata: ${data.error}`
+            };
+        }
+
+        async function testLoginEndpoint() {
+            const response = await fetch(API_ROOT + 'login.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    eposta: 'test@test.com',
+                    sifre: 'Test1234'
+                })
+            });
+            const data = await response.json();
+            return {
+                pass: !data.success, // Başarısız olması normal çünkü kullanıcı yoktur
+                message: data.success ? `Unexpected success` : `Login endpoint çalışıyor! Hata: ${data.error}`
+            };
+        }
+
+        // Sayfa yüklendiğinde testleri otomatik çalıştır
+        window.onload = runTests;
+    </script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kampüs Yolu - Yürüyüş Arkadaşın</title>
+    <meta name="description"
+        content="Kampüs Yolu ile yakınındaki üniversite arkadaşlarını bul, eşleş ve birlikte yürü.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- Üst Menü -->
+    <header class="ust-menu">
+        <div class="logo"><i class="fa-solid fa-map-location-dot"></i> Kampüs Yolu</div>
+        <div class="menu-araclari">
+            <button id="temaDegistirBtn" class="tema-butonu"><i class="fa-solid fa-moon"></i></button>
+            <div id="kullaniciProfiliMini" class="gizli">
+                <span id="aktifKullaniciAdi">Kullanıcı <i class="fa-solid fa-circle-check text-yesil"></i></span>
+                <button onclick="cikisYap()" class="cikis-butonu">Çıkış</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- GİRİŞ VE KAYIT EKRANI -->
+    <section id="girisEkrani" class="aktif-sayfa container">
+        <div class="giris-karti">
+            <h2>Giriş Yap</h2>
+            <form id="girisFormu">
+                <input type="email" id="epostaGirdisi" placeholder="Üniversite E-postası (@atauni.edu.tr)" required>
+                <input type="password" id="sifreGirdisi" placeholder="Şifreniz" required>
+                <button type="submit" class="ana-buton">Sisteme Gir</button>
+            </form>
+            <p class="mt-10" style="text-align:center;">Hesabın yok mu? <a href="#" id="kayitOlLink"
+                    style="color:var(--ana-yesil);font-weight:600;">Kayıt Ol</a></p>
+
+            <div id="kayitKarti" class="gizli giris-karti"
+                style="margin-top:20px;box-shadow:none;border:1px solid var(--border);">
+                <h2>Kayıt Ol</h2>
+                <form id="kayitFormu">
+                    <input type="text" id="kayitIsim" placeholder="Görünen İsim (Örn: Ali Ö.)" required>
+                    <input type="email" id="kayitEposta" placeholder="Üniversite E-postası" required>
+                    <div class="form-grubu">
+                        <label>Cinsiyet:</label>
+                        <select id="kayitCinsiyet">
+                            <option value="belirtmek_istemiyorum">Belirtmek İstemiyorum</option>
+                            <option value="erkek">Erkek</option>
+                            <option value="kadin">Kadın</option>
+                        </select>
+                    </div>
+                    <input type="password" id="kayitSifre" placeholder="Şifre (min 8, büyük+küçük harf+rakam)" required>
+                    <input type="password" id="kayitSifreTekrar" placeholder="Şifre (Tekrar)" required>
+                    <button type="submit" class="ana-buton">Hesap Oluştur</button>
+                </form>
+                <button type="button" class="buton-red mt-10" id="kayitVazgecBtn" style="width:100%">Geri</button>
+            </div>
+
+            <div class="google-giris">
+                <div class="google-separator">veya</div>
+                <button type="button" id="googleGirisBtn" class="ana-buton google-btn" style="width:100%">
+                    <i class="fa-brands fa-google"></i> Google ile giriş
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ANA UYGULAMA -->
+    <section id="anaUygulama" class="gizli">
+
+        <!-- 1. KEŞFET -->
+        <div id="sayfa-kesfet" class="uygulama-sayfasi aktif-sayfa">
+            <div class="harita-kapsayici">
+                <div id="haritaAlani"></div>
+                <div class="rota-paneli" id="kesfetPaneli">
+                    <h3><i class="fa-solid fa-radar"></i> Yakındakileri Keşfet</h3>
+                    <div id="konumDurum" class="konum-durum yukleniyor">
+                        <span class="pulse-dot"></span> Konum alınıyor...
+                    </div>
+                    <div class="form-grubu">
+                        <label>Arama Yarıçapı:</label>
+                        <div class="radius-slider">
+                            <input type="range" id="yaricapSlider" min="500" max="5000" value="2000" step="100">
+                            <span class="radius-degeri" id="yaricapDegeri">2 km</span>
+                        </div>
+                    </div>
+                    <div class="form-grubu">
+                        <label>Arkadaş Tercihi:</label>
+                        <select id="cinsiyetTercihi">
+                            <option value="farketmez">Farketmez</option>
+                            <option value="erkek">Erkek</option>
+                            <option value="kadin">Kadın</option>
+                        </select>
+                    </div>
+                    <button class="ana-buton" id="yakindakileriBulBtn">
+                        <i class="fa-solid fa-magnifying-glass-location"></i> Yakındakileri Göster
+                    </button>
+                </div>
+                <!-- Harita üzerinde konum seçme uyarısı -->
+                <div id="haritaSecimUyari" class="harita-secim-uyari gizli">
+                    <i class="fa-solid fa-map-pin"></i> Haritaya tıklayarak konumunuzu seçin
+                    <button onclick="haritaSecimIptal()"
+                        style="background:none;border:none;color:var(--kirmizi);cursor:pointer;margin-left:8px;"><i
+                            class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. İSTEKLER / MESAJLAR -->
+        <div id="sayfa-istekler" class="uygulama-sayfasi gizli container">
+            <div id="isteklerListeGorunumu">
+                <h2 style="margin-bottom:16px;">Eşleşmelerim & Mesajlar</h2>
+                <div id="istekListesiAlani">
+                    <p style="text-align:center;color:var(--yazi-ikincil);padding:40px 0;">
+                        <i class="fa-solid fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px;"></i>
+                        Henüz eşleşme yok. Keşfet sekmesinden yakınındaki kişilere eşleşme isteği gönder!
+                    </p>
+                </div>
+            </div>
+            <!-- Mesajlaşma görünümü -->
+            <div id="mesajGorunumu" class="gizli">
+                <div class="mesaj-kutusu">
+                    <div class="mesaj-baslik">
+                        <button class="mesaj-geri-btn" onclick="mesajKapat()"><i
+                                class="fa-solid fa-arrow-left"></i></button>
+                        <h4 id="mesajKarsiIsim">-</h4>
+                        <span id="mesajUyum" class="etiket" style="margin-left:auto;"></span>
+                    </div>
+                    <div class="mesaj-listesi" id="mesajListesi"></div>
+                    <div class="mesaj-input-alani">
+                        <input type="text" id="mesajInput" placeholder="Mesajınızı yazın..." maxlength="1000">
+                        <button class="mesaj-gonder-btn" onclick="mesajGonder()"><i
+                                class="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. AKTİVİTELER -->
+        <div id="sayfa-aktiviteler" class="uygulama-sayfasi gizli container">
+            <h2 style="margin-bottom:16px;">İstatistik Panelim</h2>
+            <div class="istatistik-izgarasi">
+                <div class="istatistik-karti">
+                    <i class="fa-solid fa-shoe-prints"></i>
+                    <h3>42.5 km</h3>
+                    <p>Yürünen Mesafe</p>
+                </div>
+                <div class="istatistik-karti cevre-karti">
+                    <i class="fa-solid fa-leaf"></i>
+                    <h3>780 g</h3>
+                    <p>CO2 Tasarrufu</p>
+                </div>
+                <div class="istatistik-karti">
+                    <i class="fa-solid fa-users"></i>
+                    <h3 id="toplamEslesme">0</h3>
+                    <p>Toplam Eşleşme</p>
+                </div>
+                <div class="istatistik-karti">
+                    <i class="fa-solid fa-star"></i>
+                    <h3 id="ortalamaUyum">-%</h3>
+                    <p>Ortalama Uyum</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. PROFİL -->
+        <div id="sayfa-profil" class="uygulama-sayfasi gizli container">
+            <div class="profil-header">
+                <div class="profil-avatar" id="profilAvatar">👤</div>
+                <div class="profil-isim" id="profilIsim">-</div>
+                <div class="profil-email" id="profilEmail">-</div>
+            </div>
+            <div class="kart">
+                <div class="form-grubu">
+                    <label>Görünen İsim:</label>
+                    <input type="text" id="profilIsimInput" placeholder="İsminizi girin">
+                </div>
+                <div class="form-grubu">
+                    <label>Cinsiyet:</label>
+                    <select id="profilCinsiyet">
+                        <option value="belirtmek_istemiyorum">Belirtmek İstemiyorum</option>
+                        <option value="erkek">Erkek</option>
+                        <option value="kadin">Kadın</option>
+                    </select>
+                </div>
+            </div>
+            <div class="kart">
+                <h3 style="margin-bottom:8px;"><i class="fa-solid fa-heart"></i> İlgi Alanlarım</h3>
+                <p style="font-size:0.85rem;color:var(--yazi-ikincil);margin-bottom:12px;">Seçtiğin ilgi alanlarına göre
+                    yakınındaki kişilerle uyumluluk hesaplanır.</p>
+                <div id="hobiSecimAlani">
+                    <p style="color:var(--yazi-ikincil);text-align:center;padding:20px;">Yükleniyor...</p>
+                </div>
+            </div>
+            <button class="ana-buton" id="profilKaydetBtn" style="margin-bottom:12px;">
+                <i class="fa-solid fa-floppy-disk"></i> Profili Kaydet
+            </button>
+            <button class="buton-red" style="width:100%;">
+                <i class="fa-solid fa-trash"></i> Hesabımı Sil
+            </button>
+        </div>
+
+        <!-- ALT GEZİNME -->
+        <nav class="alt-navigasyon">
+            <button class="nav-buton aktif" onclick="sekmeDegistir('sayfa-kesfet', this)"><i
+                    class="fa-solid fa-location-dot"></i><span>Keşfet</span></button>
+            <button class="nav-buton" onclick="sekmeDegistir('sayfa-istekler', this)"><i
+                    class="fa-solid fa-comment-dots"></i><span>Mesajlar</span><span class="bildirim gizli"
+                    id="mesajBildirim">0</span></button>
+            <button class="nav-buton" onclick="sekmeDegistir('sayfa-aktiviteler', this)"><i
+                    class="fa-solid fa-trophy"></i><span>Aktiviteler</span></button>
+            <button class="nav-buton" onclick="sekmeDegistir('sayfa-profil', this)"><i
+                    class="fa-solid fa-user"></i><span>Profil</span></button>
+        </nav>
+    </section>
+
+    <!-- ADMİN PANELİ -->
+    <section id="adminPaneli" class="gizli container">
+        <h2>Sistem Yönetim Paneli</h2>
+        <div class="istatistik-izgarasi">
+            <div class="istatistik-karti">
+                <h3>Belge Onay Merkezi</h3>
+                <p>Bekleyen Öğrenci Belgesi: 3</p>
+                <button class="ana-buton">İncele</button>
+            </div>
+            <div class="istatistik-karti">
+                <h3>Şikayet Yönetimi</h3>
+                <p>Açık Şikayetler: 1</p>
+                <button class="buton-red">Kullanıcıları Yönet</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- SCRIPTS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+    <script src="app.js?ver=3"></script>
+</body>
+
+</html>

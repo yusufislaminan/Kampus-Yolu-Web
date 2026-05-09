@@ -1,0 +1,9 @@
+# Force UTF-8 encoding for static files served by Apache
+AddDefaultCharset UTF-8
+
+<IfModule mod_mime.c>
+  AddType text/html .html .htm
+  AddType application/javascript .js
+  AddType text/css .css
+  AddType application/json .json
+</IfModule>
