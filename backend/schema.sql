@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   display_name VARCHAR(100) DEFAULT NULL,
   gender ENUM('erkek','kadin','belirtmek_istemiyorum') NOT NULL DEFAULT 'belirtmek_istemiyorum',
+  profile_pic VARCHAR(255) DEFAULT NULL,
   role ENUM('user','admin') NOT NULL DEFAULT 'user',
   -- MySQL Spatial: Kullanıcı konumu
   -- ST_GeomFromText('POINT(boylam enlem)', 4326) şeklinde eklenir
@@ -81,6 +82,22 @@ CREATE TABLE IF NOT EXISTS messages (
   KEY idx_messages_sender (sender_id),
   CONSTRAINT fk_messages_match FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
   CONSTRAINT fk_messages_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================
+-- ENGELLEME TABLOSU
+-- ============================================
+CREATE TABLE IF NOT EXISTS blocked_users (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  blocker_id BIGINT UNSIGNED NOT NULL,
+  blocked_id BIGINT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_block (blocker_id, blocked_id),
+  KEY idx_blocked_blocker (blocker_id),
+  KEY idx_blocked_blocked (blocked_id),
+  CONSTRAINT fk_block_blocker FOREIGN KEY (blocker_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_block_blocked FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================

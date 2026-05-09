@@ -19,6 +19,16 @@ if ($userId <= 0 || $targetUserId <= 0 || $userId === $targetUserId) {
 }
 
 try {
+    // Engelleme kontrolü
+    $stmtBlock = $pdo->prepare(
+        "SELECT id FROM blocked_users 
+         WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?) LIMIT 1"
+    );
+    $stmtBlock->execute([$userId, $targetUserId, $targetUserId, $userId]);
+    if ($stmtBlock->fetch()) {
+        json_response(403, ['success' => false, 'error' => 'Bu kullanıcıyla etkileşim kurulamaz']);
+    }
+
     // Daha önce eşleşme var mı kontrol et (pending veya accepted)
     $stmtCheck = $pdo->prepare(
         "SELECT id FROM matches 

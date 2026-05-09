@@ -7,7 +7,7 @@
     <title>Kampüs Yolu - Yürüyüş Arkadaşın</title>
     <meta name="description"
         content="Kampüs Yolu ile yakınındaki üniversite arkadaşlarını bul, eşleş ve birlikte yürü.">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?ver=2">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -169,7 +169,14 @@
         <!-- 4. PROFİL -->
         <div id="sayfa-profil" class="uygulama-sayfasi gizli container">
             <div class="profil-header">
-                <div class="profil-avatar" id="profilAvatar">👤</div>
+                <div class="profil-avatar-wrapper">
+                    <div class="profil-avatar" id="profilAvatar">👤</div>
+                    <img id="profilAvatarImg" class="profil-avatar-img gizli" src="" alt="Profil">
+                    <label for="profilResimInput" class="profil-resim-degistir" title="Profil resmini değiştir">
+                        <i class="fa-solid fa-camera"></i>
+                    </label>
+                    <input type="file" id="profilResimInput" accept="image/png, image/jpeg" class="gizli">
+                </div>
                 <div class="profil-isim" id="profilIsim">-</div>
                 <div class="profil-email" id="profilEmail">-</div>
             </div>
@@ -198,6 +205,14 @@
             <button class="ana-buton" id="profilKaydetBtn" style="margin-bottom:12px;">
                 <i class="fa-solid fa-floppy-disk"></i> Profili Kaydet
             </button>
+            <!-- Engellenen Kullanıcılar -->
+            <div class="kart">
+                <h3 style="margin-bottom:8px;"><i class="fa-solid fa-ban"></i> Engellenen Kullanıcılar</h3>
+                <p style="font-size:0.85rem;color:var(--yazi-ikincil);margin-bottom:12px;">Engellediğin kullanıcılar seni göremez ve sana istek atamaz.</p>
+                <div id="engellenenlerAlani">
+                    <p style="color:var(--yazi-ikincil);text-align:center;padding:10px;">Yükleniyor...</p>
+                </div>
+            </div>
             <button class="buton-red" style="width:100%;">
                 <i class="fa-solid fa-trash"></i> Hesabımı Sil
             </button>
@@ -237,7 +252,7 @@
     <!-- SCRIPTS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
-    <script src="app.js?ver=3"></script>
+    <script src="app.js?ver=4"></script>
 </body>
 
 </html>

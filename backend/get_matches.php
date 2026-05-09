@@ -33,6 +33,7 @@ try {
             CASE WHEN m.user1_id = ? THEN u2.id ELSE u1.id END AS other_user_id,
             CASE WHEN m.user1_id = ? THEN u2.display_name ELSE u1.display_name END AS other_display_name,
             CASE WHEN m.user1_id = ? THEN u2.gender ELSE u1.gender END AS other_gender,
+            CASE WHEN m.user1_id = ? THEN u2.profile_pic ELSE u1.profile_pic END AS other_profile_pic,
             CASE WHEN m.user1_id = ? THEN ST_Y(u2.location) ELSE ST_Y(u1.location) END AS other_lat,
             CASE WHEN m.user1_id = ? THEN ST_X(u2.location) ELSE ST_X(u1.location) END AS other_lng,
             -- Okunmamış mesaj sayısı
@@ -42,10 +43,11 @@ try {
         JOIN users u1 ON m.user1_id = u1.id
         JOIN users u2 ON m.user2_id = u2.id
         WHERE (m.user1_id = ? OR m.user2_id = ?)
+          AND m.status IN ('pending', 'accepted')
         ORDER BY m.created_at DESC
     ");
 
-    $stmt->execute([$userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId]);
+    $stmt->execute([$userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId]);
     $matches = $stmt->fetchAll();
 
     $result = [];
@@ -55,6 +57,7 @@ try {
             'otherUserId' => (int) $row['other_user_id'],
             'otherDisplayName' => $row['other_display_name'] ?? 'Anonim',
             'otherGender' => $row['other_gender'],
+            'otherProfilePic' => $row['other_profile_pic'] ?? null,
             'otherLat' => $row['other_lat'] !== null ? (float) $row['other_lat'] : null,
             'otherLng' => $row['other_lng'] !== null ? (float) $row['other_lng'] : null,
             'compatibility' => (int) $row['compatibility_score'],

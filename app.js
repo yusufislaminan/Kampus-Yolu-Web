@@ -1,4 +1,4 @@
-﻿// ======= KAMPÃœS YOLU - ANA UYGULAMA =======
+// ======= KAMPÃœS YOLU - ANA UYGULAMA =======
 
 // --- GLOBAL STATE ---
 let aktifKullanici = null; // { userId, email, display_name, gender, interests, role }
@@ -127,6 +127,7 @@ girisFormu.addEventListener('submit', function(e) {
         aktifKullanici = {
             userId: data.userId, email: data.email,
             display_name: data.display_name || '', gender: data.gender || 'belirtmek_istemiyorum',
+            profile_pic: data.profile_pic || null,
             interests: data.interests || [], role: data.role
         };
         document.getElementById('aktifKullaniciAdi').innerHTML =
@@ -261,14 +262,30 @@ function konumDurumGuncelle(tip, mesaj) {
     else el.innerHTML = '<span class="pulse-dot"></span> ' + mesaj;
 }
 
+function kullaniciAvatarHtml(profilePic, displayName, sinif) {
+    if (profilePic) {
+        return `<img src="${API_ROOT}uploads/avatars/${profilePic}" alt="${displayName || ''}" class="${sinif}">`;
+    }
+    return `<span class="${sinif}-text">${(displayName || 'A')[0].toUpperCase()}</span>`;
+}
+
 function benimMarkerGuncelle() {
     if (!kampusHaritasi || !benimKonumum) return;
-    if (benimMarkerim) benimMarkerim.setLatLng([benimKonumum.lat, benimKonumum.lng]);
-    else {
-        const icon = L.divIcon({
-            html: '<div style="width:16px;height:16px;background:#3b82f6;border-radius:50%;border:3px solid #fff;box-shadow:0 0 10px rgba(59,130,246,0.5);"></div>',
-            className: '', iconSize: [16, 16], iconAnchor: [8, 8]
-        });
+    const isim = aktifKullanici?.display_name || 'Ben';
+    const pic = aktifKullanici?.profile_pic;
+    const avatarInner = pic
+        ? `<img src="${API_ROOT}uploads/avatars/${pic}" alt="${isim}" class="marker-avatar-img">`
+        : `<span class="marker-avatar-text">${isim[0].toUpperCase()}</span>`;
+    const markerHtml = `<div class="custom-marker benim-marker">
+        <div class="marker-avatar" style="border-color:#3b82f6">${avatarInner}</div>
+        <div class="marker-isim">${isim}</div>
+        <div class="marker-ok" style="border-top-color:#3b82f6"></div>
+    </div>`;
+    const icon = L.divIcon({ html: markerHtml, className: 'marker-div-icon', iconSize: [60, 75], iconAnchor: [30, 75], popupAnchor: [0, -70] });
+
+    if (benimMarkerim) {
+        benimMarkerim.setLatLng([benimKonumum.lat, benimKonumum.lng]).setIcon(icon);
+    } else {
         benimMarkerim = L.marker([benimKonumum.lat, benimKonumum.lng], { icon })
             .addTo(kampusHaritasi).bindPopup('<b>Sen buradasÄ±n</b>');
         kampusHaritasi.setView([benimKonumum.lat, benimKonumum.lng], 15);
@@ -331,7 +348,6 @@ function haritaMarkerlariGuncelle(users) {
     if (!kampusHaritasi) return;
     const mevcutIdler = new Set(users.map(u => u.id));
 
-    // KaldÄ±rÄ±lan markerlarÄ± temizle
     Object.keys(kullaniciMarkerlar).forEach(id => {
         if (!mevcutIdler.has(parseInt(id))) {
             kampusHaritasi.removeLayer(kullaniciMarkerlar[id]);
@@ -341,21 +357,35 @@ function haritaMarkerlariGuncelle(users) {
 
     users.forEach(u => {
         const renk = uyumRengi(u.compatibility);
-        const icon = L.divIcon({
-            html: `<div style="width:14px;height:14px;background:${renk};border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px ${renk}80;"></div>`,
-            className: '', iconSize: [14, 14], iconAnchor: [7, 7]
-        });
+        const avatarInner = u.profile_pic
+            ? `<img src="${API_ROOT}uploads/avatars/${u.profile_pic}" alt="${u.display_name || ''}" class="marker-avatar-img">`
+            : `<span class="marker-avatar-text">${(u.display_name || 'A')[0].toUpperCase()}</span>`;
+
+        const markerHtml = `<div class="custom-marker">
+            <div class="marker-avatar" style="border-color:${renk}">${avatarInner}</div>
+            <div class="marker-isim">${u.display_name || 'Anonim'}</div>
+            <div class="marker-ok" style="border-top-color:${renk}"></div>
+        </div>`;
+
+        const icon = L.divIcon({ html: markerHtml, className: 'marker-div-icon', iconSize: [60, 75], iconAnchor: [30, 75], popupAnchor: [0, -70] });
 
         const hobilerHtml = (u.interests || []).slice(0, 5).map(i =>
             `<span class="popup-etiket">${i.icon || ''} ${i.name}</span>`
         ).join('');
 
+        const popupAvatarHtml = u.profile_pic
+            ? `<img src="${API_ROOT}uploads/avatars/${u.profile_pic}" class="popup-avatar-img">`
+            : '';
+
         const popup = `<div class="kullanici-popup">
+            ${popupAvatarHtml}
             <h4>${u.display_name || 'Anonim'}</h4>
             <div class="uyum-bilgi">Uyum: %${u.compatibility} Â· ${Math.round(u.distance)}m uzakta</div>
             <div class="uyum-bar-bg"><div class="uyum-bar" style="width:${u.compatibility}%;background:${renk};"></div></div>
             <div class="popup-etiketler">${hobilerHtml}</div>
-            <button class="popup-buton" onclick="eslesmeGonder(${u.id})"><i class="fa-solid fa-handshake"></i> EÅŸleÅŸ</button>
+            <div class="popup-butonlar">
+                <button class="popup-buton" onclick="eslesmeGonder(${u.id})"><i class="fa-solid fa-handshake"></i> EÅŸleÅŸ</button>
+            </div>
         </div>`;
 
         if (kullaniciMarkerlar[u.id]) {
@@ -368,7 +398,7 @@ function haritaMarkerlariGuncelle(users) {
     });
 }
 
-// --- 7. EÅLEÅME ---
+// --- 7. EÅžLEÅžME ---
 function eslesmeGonder(targetId) {
     if (!aktifKullanici) return;
     apiFetch('create_match.php', {
@@ -409,7 +439,7 @@ function ortaNoktaGoster(konum1, konum2) {
     }).addTo(kampusHaritasi);
 }
 
-// --- 8. EÅLEÅMELER LÄ°STESÄ° ---
+// --- 8. EŞLEŞMELER LİSTESİ ---
 function eslesmelerYukle() {
     if (!aktifKullanici) return;
     apiFetch('get_matches.php', {
@@ -422,46 +452,71 @@ function eslesmelerYukle() {
         let toplamOkunmamis = 0;
 
         if (matches.length === 0) {
-            alan.innerHTML = '<p style="text-align:center;color:var(--yazi-ikincil);padding:40px 0;"><i class="fa-solid fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px;"></i>HenÃ¼z eÅŸleÅŸme yok.</p>';
+            alan.innerHTML = '<p style="text-align:center;color:var(--yazi-ikincil);padding:40px 0;"><i class="fa-solid fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px;"></i>Henüz eşleşme yok.</p>';
         } else {
             alan.innerHTML = matches.map(m => {
                 toplamOkunmamis += m.unreadCount || 0;
                 const renk = uyumRengi(m.compatibility);
-                return `<div class="kart" style="cursor:pointer;" onclick="mesajAc(${m.matchId},'${(m.otherDisplayName||'').replace(/'/g,"\\'")}',${m.compatibility})">
+                const avatarHtml = m.otherProfilePic
+                    ? `<img src="${API_ROOT}uploads/avatars/${m.otherProfilePic}" class="eslesme-avatar-img">`
+                    : `<div class="eslesme-avatar-harf">${(m.otherDisplayName||'A')[0].toUpperCase()}</div>`;
+
+                let durumHtml = '';
+                let kartOnclick = '';
+                if (m.status === 'accepted') {
+                    durumHtml = '<span class="esleme-durum-badge aktif"><i class="fa-solid fa-check-circle"></i> Aktif</span>';
+                    kartOnclick = `onclick="mesajAc(${m.matchId},'${(m.otherDisplayName||'').replace(/'/g,"\\\'")}',${m.compatibility},'accepted')"`;
+                } else if (m.status === 'pending' && !m.isRequester) {
+                    durumHtml = `<div class="kart-butonlari" style="margin-top:8px;">
+                        <button class="buton-onay" onclick="event.stopPropagation();eslesmeKabulEt(${m.matchId})"><i class="fa-solid fa-check"></i> Kabul Et</button>
+                        <button class="buton-red" onclick="event.stopPropagation();eslesmeReddet(${m.matchId})"><i class="fa-solid fa-xmark"></i> Reddet</button>
+                    </div>`;
+                } else if (m.status === 'pending' && m.isRequester) {
+                    durumHtml = '<span class="esleme-durum-badge beklemede"><i class="fa-solid fa-clock"></i> Yanıt bekleniyor...</span>';
+                }
+
+                return `<div class="kart" style="cursor:${m.status === 'accepted' ? 'pointer' : 'default'};" ${kartOnclick}>
                     <div class="kart-baslik">
-                        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--ana-yesil),var(--mavi));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">${(m.otherDisplayName||'A')[0].toUpperCase()}</div>
+                        ${avatarHtml}
                         <div style="flex:1;">
                             <h4>${m.otherDisplayName || 'Anonim'}</h4>
-                            <small style="color:var(--yazi-ikincil);">Uyum: %${m.compatibility} Â· ${m.status === 'accepted' ? 'Aktif' : 'Beklemede'}</small>
+                            <small style="color:var(--yazi-ikincil);">Uyum: %${m.compatibility}</small>
                         </div>
                         ${m.unreadCount > 0 ? `<span class="bildirim" style="position:static;">${m.unreadCount}</span>` : ''}
+                        <button class="engelle-btn-kucuk" onclick="event.stopPropagation();kullaniciEngelle(${m.otherUserId},'${(m.otherDisplayName||'').replace(/'/g,"\\\'")}')" title="Engelle"><i class="fa-solid fa-ban"></i></button>
                     </div>
                     <div class="uyum-bar-bg"><div class="uyum-bar" style="width:${m.compatibility}%;background:${renk};"></div></div>
+                    ${durumHtml}
                 </div>`;
             }).join('');
         }
-        // Bildirim badge gÃ¼ncelle
         const badge = document.getElementById('mesajBildirim');
         if (toplamOkunmamis > 0) { badge.textContent = toplamOkunmamis; badge.classList.remove('gizli'); }
         else { badge.classList.add('gizli'); }
-        // Ä°statistik gÃ¼ncelle
         document.getElementById('toplamEslesme').textContent = matches.length;
         if (matches.length > 0) {
             const ort = Math.round(matches.reduce((t, m) => t + m.compatibility, 0) / matches.length);
             document.getElementById('ortalamaUyum').textContent = '%' + ort;
         }
     })
-    .catch(e => console.error('EÅŸleÅŸme yÃ¼kleme hatasÄ±:', e));
+    .catch(e => console.error('Eşleşme yükleme hatası:', e));
 }
 
-// --- 9. MESAJLAÅMA ---
-function mesajAc(matchId, isim, uyum) {
+// --- 9. MESAJLAŞMA ---
+function mesajAc(matchId, isim, uyum, status) {
+    if (status !== 'accepted') {
+        alert('Mesajlaşma için eşleşmenin kabul edilmesi gerekir.');
+        return;
+    }
     aktifMesajMatch = matchId;
     document.getElementById('isteklerListeGorunumu').classList.add('gizli');
     document.getElementById('mesajGorunumu').classList.remove('gizli');
     document.getElementById('mesajKarsiIsim').textContent = isim;
     document.getElementById('mesajUyum').textContent = '%' + uyum + ' Uyum';
     document.getElementById('mesajListesi').innerHTML = '';
+    // Mesaj inputunu aktif et
+    document.getElementById('mesajInput').disabled = false;
+    document.getElementById('mesajInput').placeholder = 'Mesajınızı yazın...';
     mesajlariYukle();
     if (mesajPollingInterval) clearInterval(mesajPollingInterval);
     mesajPollingInterval = setInterval(mesajlariYukle, 3000);
@@ -520,7 +575,7 @@ document.getElementById('mesajInput')?.addEventListener('keypress', e => {
     if (e.key === 'Enter') mesajGonder();
 });
 
-// --- 10. PROFÄ°L & HOBÄ°LER ---
+// --- 10. PROFİL & HOBİLER ---
 function profilDoldur() {
     if (!aktifKullanici) return;
     document.getElementById('profilIsim').textContent = aktifKullanici.display_name || aktifKullanici.email;
@@ -528,10 +583,19 @@ function profilDoldur() {
     document.getElementById('profilIsimInput').value = aktifKullanici.display_name || '';
     document.getElementById('profilCinsiyet').value = aktifKullanici.gender || 'belirtmek_istemiyorum';
     const avatar = document.getElementById('profilAvatar');
-    if (aktifKullanici.display_name) avatar.textContent = aktifKullanici.display_name[0].toUpperCase();
-    // SeÃ§ili hobileri iÅŸaretle
+    const avatarImg = document.getElementById('profilAvatarImg');
+    if (aktifKullanici.profile_pic) {
+        avatarImg.src = API_ROOT + 'uploads/avatars/' + aktifKullanici.profile_pic;
+        avatarImg.classList.remove('gizli');
+        avatar.classList.add('gizli');
+    } else {
+        avatarImg.classList.add('gizli');
+        avatar.classList.remove('gizli');
+        if (aktifKullanici.display_name) avatar.textContent = aktifKullanici.display_name[0].toUpperCase();
+    }
     seciliHobiler.clear();
     (aktifKullanici.interests || []).forEach(i => seciliHobiler.add(i.id));
+    engellenenlerYukle();
 }
 
 function hobileriYukle() {
@@ -602,4 +666,109 @@ function sekmeDegistir(hedefSayfaId, btn) {
     if (hedefSayfaId === 'sayfa-profil') { profilDoldur(); hobileriYukle(); }
 }
 
+// --- 12. PROFİL RESMİ YÜKLEME ---
+document.getElementById('profilResimInput')?.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+        alert('Dosya boyutu 2MB\'ı aşamaz.');
+        this.value = '';
+        return;
+    }
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        alert('Sadece JPEG ve PNG dosyaları kabul edilir.');
+        this.value = '';
+        return;
+    }
+    const formData = new FormData();
+    formData.append('userId', aktifKullanici.userId);
+    formData.append('profile_pic', file);
 
+    fetch(API_ROOT + 'upload_profile_pic.php', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            aktifKullanici.profile_pic = data.profile_pic;
+            profilDoldur();
+            benimMarkerGuncelle();
+            alert('Profil resmi güncellendi!');
+        } else {
+            alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+        }
+    })
+    .catch(e => alert('Profil resmi yükleme hatası.\n' + e.message));
+    this.value = '';
+});
+
+// --- 13. EŞLEŞME KABUL / RED ---
+function eslesmeKabulEt(matchId) {
+    apiFetch('accept_match.php', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, userId: aktifKullanici.userId })
+    })
+    .then(() => { alert('Eşleşme kabul edildi! Artık mesajlaşabilirsiniz.'); eslesmelerYukle(); })
+    .catch(e => alert('Kabul hatası: ' + e.message));
+}
+
+function eslesmeReddet(matchId) {
+    if (!confirm('Bu eşleşme isteğini reddetmek istediğinize emin misiniz?')) return;
+    apiFetch('reject_match.php', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, userId: aktifKullanici.userId })
+    })
+    .then(() => { alert('Eşleşme reddedildi.'); eslesmelerYukle(); })
+    .catch(e => alert('Red hatası: ' + e.message));
+}
+
+// --- 14. ENGELLEME SİSTEMİ ---
+function kullaniciEngelle(blockedId, isim) {
+    if (!confirm(`${isim || 'Bu kullanıcıyı'} engellemek istediğinize emin misiniz? Engellenen kişi sizi göremez ve size istek atamaz.`)) return;
+    apiFetch('block_user.php', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: aktifKullanici.userId, blockedId })
+    })
+    .then(() => {
+        alert('Kullanıcı engellendi.');
+        eslesmelerYukle();
+        yakinlariGetir();
+    })
+    .catch(e => alert('Engelleme hatası: ' + e.message));
+}
+
+function engelKaldir(blockedId) {
+    if (!confirm('Engeli kaldırmak istediğinize emin misiniz?')) return;
+    apiFetch('unblock_user.php', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: aktifKullanici.userId, blockedId })
+    })
+    .then(() => { alert('Engel kaldırıldı.'); engellenenlerYukle(); })
+    .catch(e => alert('Engel kaldırma hatası: ' + e.message));
+}
+
+function engellenenlerYukle() {
+    if (!aktifKullanici) return;
+    const alan = document.getElementById('engellenenlerAlani');
+    if (!alan) return;
+    apiFetch('get_blocked_users.php', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: aktifKullanici.userId })
+    })
+    .then(data => {
+        const list = data.blocked || [];
+        if (list.length === 0) {
+            alan.innerHTML = '<p style="color:var(--yazi-ikincil);text-align:center;padding:10px;">Engellenen kullanıcı yok.</p>';
+        } else {
+            alan.innerHTML = list.map(b => {
+                const avatarHtml = b.profile_pic
+                    ? `<img src="${API_ROOT}uploads/avatars/${b.profile_pic}" class="engel-avatar-img">`
+                    : `<div class="engel-avatar-harf">${(b.display_name||'A')[0].toUpperCase()}</div>`;
+                return `<div class="engel-satir">
+                    ${avatarHtml}
+                    <span class="engel-isim">${b.display_name || 'Anonim'}</span>
+                    <button class="engel-kaldir-btn" onclick="engelKaldir(${b.blocked_id})"><i class="fa-solid fa-unlock"></i> Kaldır</button>
+                </div>`;
+            }).join('');
+        }
+    })
+    .catch(() => { alan.innerHTML = '<p style="color:var(--kirmizi);">Yüklenemedi.</p>'; });
+}

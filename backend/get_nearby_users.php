@@ -44,7 +44,6 @@ try {
 
     // Cinsiyet filtresi SQL parçası
     $genderFilter = '';
-    $params = [$selfPointWkt, $userId, $userId, $userId, $radius];
 
     if ($genderPref === 'erkek') {
         $genderFilter = "AND u.gender = 'erkek'";
@@ -53,12 +52,14 @@ try {
     }
 
     // Yakındaki aktif kullanıcıları bul (son 10 dakika içinde konum güncelleyenler)
+    // Engelleme filtresi: karşılıklı engelleme kontrolü
     $sql = "
         SELECT 
             u.id,
             u.display_name,
             u.gender,
             u.status,
+            u.profile_pic,
             ST_X(u.location) AS lng,
             ST_Y(u.location) AS lat,
             ST_Distance_Sphere(u.location, ST_GeomFromText(?, 4326)) AS distance_meters,
@@ -73,15 +74,15 @@ try {
           AND u.location IS NOT NULL
           AND u.location_updated_at > NOW() - INTERVAL 10 MINUTE
           AND ST_Distance_Sphere(u.location, ST_GeomFromText(?, 4326)) <= ?
+          AND u.id NOT IN (SELECT blocked_id FROM blocked_users WHERE blocker_id = ?)
+          AND u.id NOT IN (SELECT blocker_id FROM blocked_users WHERE blocked_id = ?)
           {$genderFilter}
         ORDER BY distance_meters ASC
         LIMIT 20
     ";
 
-    // Parametreleri ayarla - ilk parametre self point (distance hesabı), ikinci userId (common_interests), 
-    // üçüncü userId (total_interests_self), dördüncü userId (exclude self), beşinci self point (distance filter), altıncı radius
     $stmtNearby = $pdo->prepare($sql);
-    $stmtNearby->execute([$selfPointWkt, $userId, $userId, $userId, $selfPointWkt, $radius]);
+    $stmtNearby->execute([$selfPointWkt, $userId, $userId, $userId, $selfPointWkt, $radius, $userId, $userId]);
     $nearbyUsers = $stmtNearby->fetchAll();
 
     $result = [];
@@ -107,6 +108,7 @@ try {
             'display_name' => $row['display_name'] ?? 'Anonim',
             'gender' => $row['gender'],
             'status' => $row['status'],
+            'profile_pic' => $row['profile_pic'] ?? null,
             'lat' => (float) $row['lat'],
             'lng' => (float) $row['lng'],
             'distance' => round((float) $row['distance_meters']),
@@ -120,3 +122,4 @@ try {
 } catch (Throwable $e) {
     json_response(500, ['success' => false, 'error' => 'Nearby search failed: ' . $e->getMessage()]);
 }
+

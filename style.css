@@ -932,3 +932,286 @@ label {
         grid-template-columns: 1fr;
     }
 }
+
+/* --- ÖZEL HARİTA MARKERLARİ --- */
+.marker-div-icon {
+    background: none !important;
+    border: none !important;
+}
+
+.custom-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+    animation: markerAppear 0.4s ease;
+}
+
+@keyframes markerAppear {
+    from { opacity: 0; transform: translateY(-10px) scale(0.8); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.marker-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 3px solid #10b981;
+    background: linear-gradient(135deg, var(--ana-yesil), var(--mavi));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    z-index: 2;
+}
+
+.marker-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.marker-avatar-text {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.marker-isim {
+    background: var(--kutu-arkaplan, rgba(255,255,255,0.95));
+    color: var(--yazi-renk, #1a1a2e);
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: -2px;
+    z-index: 1;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.marker-ok {
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #10b981;
+    margin-top: -1px;
+}
+
+.benim-marker .marker-avatar {
+    border-color: #3b82f6;
+    box-shadow: 0 0 12px rgba(59,130,246,0.4);
+}
+
+/* --- POPUP AVATAR --- */
+.popup-avatar-img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--ana-yesil);
+    margin-bottom: 6px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.popup-butonlar {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.popup-butonlar .popup-buton {
+    flex: 1;
+}
+
+.popup-engelle-btn {
+    background: linear-gradient(135deg, var(--kirmizi), var(--kirmizi-hover)) !important;
+    flex: 0 0 36px !important;
+    min-width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- PROFİL AVATAR WRAPPER --- */
+.profil-avatar-wrapper {
+    position: relative;
+    display: inline-block;
+    margin: 0 auto 12px;
+}
+
+.profil-avatar-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--ana-yesil);
+    display: block;
+}
+
+.profil-resim-degistir {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--ana-yesil), #059669);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: var(--gecis);
+    border: 2px solid var(--kutu-arkaplan);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.profil-resim-degistir:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
+}
+
+/* --- EŞLEŞME AVATAR --- */
+.eslesme-avatar-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--ana-yesil);
+    flex-shrink: 0;
+}
+
+.eslesme-avatar-harf {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--ana-yesil), var(--mavi));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+/* --- EŞLEŞME DURUM BADGE --- */
+.esleme-durum-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+.esleme-durum-badge.aktif {
+    background: var(--ikincil-yesil);
+    color: var(--ana-yesil);
+}
+
+.esleme-durum-badge.beklemede {
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--turuncu);
+}
+
+/* --- ENGELLE BUTON (küçük) --- */
+.engelle-btn-kucuk {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--yazi-ikincil);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: var(--gecis);
+    flex-shrink: 0;
+}
+
+.engelle-btn-kucuk:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--kirmizi);
+    border-color: var(--kirmizi);
+}
+
+/* --- ENGELLENENLER LİSTESİ --- */
+.engel-satir {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.engel-satir:last-child {
+    border-bottom: none;
+}
+
+.engel-avatar-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--kirmizi);
+    flex-shrink: 0;
+}
+
+.engel-avatar-harf {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--kirmizi), var(--kirmizi-hover));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.engel-isim {
+    flex: 1;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.engel-kaldir-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--ana-yesil);
+    padding: 4px 10px;
+    border-radius: var(--radius-xs);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--gecis);
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.engel-kaldir-btn:hover {
+    background: var(--ikincil-yesil);
+    border-color: var(--ana-yesil);
+}

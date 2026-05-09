@@ -26,19 +26,30 @@ if (mb_strlen($content) > 1000) {
 }
 
 try {
+    // Engelleme kontrolü
+    $stmtBlock = $pdo->prepare(
+        "SELECT id FROM blocked_users 
+         WHERE (blocker_id = ? AND blocked_id IN (SELECT user1_id FROM matches WHERE id = ? UNION SELECT user2_id FROM matches WHERE id = ?))
+         OR (blocked_id = ? AND blocker_id IN (SELECT user1_id FROM matches WHERE id = ? UNION SELECT user2_id FROM matches WHERE id = ?))
+         LIMIT 1"
+    );
+    $stmtBlock->execute([$senderId, $matchId, $matchId, $senderId, $matchId, $matchId]);
+    if ($stmtBlock->fetch()) {
+        json_response(403, ['success' => false, 'error' => 'Bu kullanıcıyla iletişim kurulamaz']);
+    }
+
+    // Sadece accepted durumundaki eşleşmelerde mesaj gönderilebilir
     $stmtCheck = $pdo->prepare(
-        "SELECT id FROM matches WHERE id = ? AND (user1_id = ? OR user2_id = ?) AND status IN ('pending','accepted') LIMIT 1"
+        "SELECT id FROM matches WHERE id = ? AND (user1_id = ? OR user2_id = ?) AND status = 'accepted' LIMIT 1"
     );
     $stmtCheck->execute([$matchId, $senderId, $senderId]);
     if (!$stmtCheck->fetch()) {
-        json_response(403, ['success' => false, 'error' => 'Not authorized']);
+        json_response(403, ['success' => false, 'error' => 'Mesaj göndermek için eşleşmenin kabul edilmesi gerekir']);
     }
 
     $stmtIns = $pdo->prepare("INSERT INTO messages (match_id, sender_id, content) VALUES (?, ?, ?)");
     $stmtIns->execute([$matchId, $senderId, $content]);
     $msgId = (int) $pdo->lastInsertId();
-
-    $pdo->prepare("UPDATE matches SET status = 'accepted' WHERE id = ? AND status = 'pending'")->execute([$matchId]);
 
     json_response(200, ['success' => true, 'messageId' => $msgId]);
 } catch (Throwable $e) {

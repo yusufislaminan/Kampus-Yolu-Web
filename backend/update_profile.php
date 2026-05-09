@@ -65,7 +65,7 @@ try {
     $pdo->commit();
 
     // Güncellenmiş profili döndür
-    $stmtUser = $pdo->prepare('SELECT id, email, display_name, gender FROM users WHERE id = ? LIMIT 1');
+    $stmtUser = $pdo->prepare('SELECT id, email, display_name, gender, profile_pic FROM users WHERE id = ? LIMIT 1');
     $stmtUser->execute([$userId]);
     $user = $stmtUser->fetch();
 

@@ -23,7 +23,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 try {
-    $stmt = $pdo->prepare('SELECT id, email, password_hash, role, display_name, gender FROM users WHERE email = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, email, password_hash, role, display_name, gender, profile_pic FROM users WHERE email = ? LIMIT 1');
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
@@ -49,6 +49,7 @@ try {
         'email' => $user['email'],
         'display_name' => $user['display_name'] ?? '',
         'gender' => $user['gender'] ?? 'belirtmek_istemiyorum',
+        'profile_pic' => $user['profile_pic'] ?? null,
         'interests' => $interests,
     ]);
 } catch (Throwable $e) {
