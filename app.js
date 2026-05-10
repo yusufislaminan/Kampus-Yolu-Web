@@ -264,7 +264,7 @@ function konumDurumGuncelle(tip, mesaj) {
 
 function kullaniciAvatarHtml(profilePic, displayName, sinif) {
     if (profilePic) {
-        return `<img src="${API_ROOT}uploads/avatars/${profilePic}" alt="${displayName || ''}" class="${sinif}">`;
+        return `<img src="${API_ROOT}get_avatar.php?file=${profilePic}" alt="${displayName || ''}" class="${sinif}">`;
     }
     return `<span class="${sinif}-text">${(displayName || 'A')[0].toUpperCase()}</span>`;
 }
@@ -274,7 +274,7 @@ function benimMarkerGuncelle() {
     const isim = aktifKullanici?.display_name || 'Ben';
     const pic = aktifKullanici?.profile_pic;
     const avatarInner = pic
-        ? `<img src="${API_ROOT}uploads/avatars/${pic}" alt="${isim}" class="marker-avatar-img">`
+        ? `<img src="${API_ROOT}get_avatar.php?file=${pic}" alt="${isim}" class="marker-avatar-img">`
         : `<span class="marker-avatar-text">${isim[0].toUpperCase()}</span>`;
     const markerHtml = `<div class="custom-marker benim-marker">
         <div class="marker-avatar" style="border-color:#3b82f6">${avatarInner}</div>
@@ -358,7 +358,7 @@ function haritaMarkerlariGuncelle(users) {
     users.forEach(u => {
         const renk = uyumRengi(u.compatibility);
         const avatarInner = u.profile_pic
-            ? `<img src="${API_ROOT}uploads/avatars/${u.profile_pic}" alt="${u.display_name || ''}" class="marker-avatar-img">`
+            ? `<img src="${API_ROOT}get_avatar.php?file=${u.profile_pic}" alt="${u.display_name || ''}" class="marker-avatar-img">`
             : `<span class="marker-avatar-text">${(u.display_name || 'A')[0].toUpperCase()}</span>`;
 
         const markerHtml = `<div class="custom-marker">
@@ -374,7 +374,7 @@ function haritaMarkerlariGuncelle(users) {
         ).join('');
 
         const popupAvatarHtml = u.profile_pic
-            ? `<img src="${API_ROOT}uploads/avatars/${u.profile_pic}" class="popup-avatar-img">`
+            ? `<img src="${API_ROOT}get_avatar.php?file=${u.profile_pic}" class="popup-avatar-img">`
             : '';
 
         const popup = `<div class="kullanici-popup">
@@ -458,7 +458,7 @@ function eslesmelerYukle() {
                 toplamOkunmamis += m.unreadCount || 0;
                 const renk = uyumRengi(m.compatibility);
                 const avatarHtml = m.otherProfilePic
-                    ? `<img src="${API_ROOT}uploads/avatars/${m.otherProfilePic}" class="eslesme-avatar-img">`
+                    ? `<img src="${API_ROOT}get_avatar.php?file=${m.otherProfilePic}" class="eslesme-avatar-img">`
                     : `<div class="eslesme-avatar-harf">${(m.otherDisplayName||'A')[0].toUpperCase()}</div>`;
 
                 let durumHtml = '';
@@ -585,7 +585,7 @@ function profilDoldur() {
     const avatar = document.getElementById('profilAvatar');
     const avatarImg = document.getElementById('profilAvatarImg');
     if (aktifKullanici.profile_pic) {
-        avatarImg.src = API_ROOT + 'uploads/avatars/' + aktifKullanici.profile_pic;
+        avatarImg.src = API_ROOT + 'get_avatar.php?file=' + aktifKullanici.profile_pic;
         avatarImg.classList.remove('gizli');
         avatar.classList.add('gizli');
     } else {
@@ -760,7 +760,7 @@ function engellenenlerYukle() {
         } else {
             alan.innerHTML = list.map(b => {
                 const avatarHtml = b.profile_pic
-                    ? `<img src="${API_ROOT}uploads/avatars/${b.profile_pic}" class="engel-avatar-img">`
+                    ? `<img src="${API_ROOT}get_avatar.php?file=${b.profile_pic}" class="engel-avatar-img">`
                     : `<div class="engel-avatar-harf">${(b.display_name||'A')[0].toUpperCase()}</div>`;
                 return `<div class="engel-satir">
                     ${avatarHtml}

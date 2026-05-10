@@ -11,5 +11,6 @@ return [
     'user' => 'root',
     'pass' => '',
     'charset' => 'utf8mb4',
+    'upload_path' => 'C:\\KampusYoluUploads\\avatars\\',
 ];
 

@@ -77,7 +77,7 @@ $extension = $allowedMimes[$realMime];
 $newFileName = bin2hex(random_bytes(16)) . '.' . $extension;
 
 // --- 7. Depolama dizini oluştur ---
-$uploadDir = __DIR__ . '/uploads/avatars/';
+$uploadDir = $config['upload_path'] ?? (__DIR__ . '/uploads/avatars/');
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0755, true);
 }

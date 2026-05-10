@@ -24,7 +24,8 @@ try {
 }
 
 // 3. uploads dizini yazılabilir mi?
-$uploadDir = __DIR__ . '/uploads/avatars/';
+$config = require __DIR__ . '/config.php';
+$uploadDir = $config['upload_path'] ?? (__DIR__ . '/uploads/avatars/');
 $result['upload_dir_exists'] = is_dir($uploadDir);
 $result['upload_dir_writable'] = is_writable($uploadDir);
 $result['upload_dir_path'] = $uploadDir;
