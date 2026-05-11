@@ -4,10 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kampüs Yolu - Yürüyüş Arkadaşın</title>
+    <title>Kampüs Yolu - Sosyalleş ve Keşfet</title>
+    
+    <!-- Performans Optimizasyonları -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    
     <meta name="description"
         content="Kampüs Yolu ile yakınındaki üniversite arkadaşlarını bul, eşleş ve birlikte yürü.">
-    <link rel="stylesheet" href="style.css?ver=2">
+    <link rel="stylesheet" href="style.css?ver=4">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -51,6 +60,19 @@
                             <option value="erkek">Erkek</option>
                             <option value="kadin">Kadın</option>
                         </select>
+                    </div>
+                    
+                    <div class="form-grubu" style="margin-bottom:15px; text-align:left;">
+                        <label style="display:block; margin-bottom:5px; font-size:0.9rem; color:var(--yazi-ikincil);">Belge Türü (İsteğe Bağlı, Onay Tiki İçin)</label>
+                        <select id="kayitDocType" style="width:100%; padding:10px; border:1px solid var(--kenarlik); border-radius:12px; background:var(--bg-input); color:var(--yazi);">
+                            <option value="">Belge Yüklemek İstemiyorum</option>
+                            <option value="ogrenci_belgesi">Öğrenci Belgesi</option>
+                            <option value="sabika_kaydi">Sabıka Kaydı</option>
+                        </select>
+                    </div>
+                    <div class="form-grubu gizli" id="kayitDocUploadGrubu" style="margin-bottom:15px; text-align:left;">
+                        <label style="display:block; margin-bottom:5px; font-size:0.9rem; color:var(--yazi-ikincil);">Belge Seç (PDF, JPG, PNG)</label>
+                        <input type="file" id="kayitDocument" accept=".pdf,image/jpeg,image/png" style="width:100%; padding:10px; border:1px solid var(--kenarlik); border-radius:12px; background:var(--bg-input); color:var(--yazi);">
                     </div>
                     <input type="password" id="kayitSifre" placeholder="Şifre (min 8, büyük+küçük harf+rakam)" required>
                     <input type="password" id="kayitSifreTekrar" placeholder="Şifre (Tekrar)" required>
@@ -127,6 +149,7 @@
                         <button class="mesaj-geri-btn" onclick="mesajKapat()"><i
                                 class="fa-solid fa-arrow-left"></i></button>
                         <h4 id="mesajKarsiIsim">-</h4>
+                        <button id="mesajSikayetBtn" class="mesaj-geri-btn" style="color:var(--kirmizi); margin-left:10px;" onclick="sikayetModalAc()" title="Kullanıcıyı Şikayet Et"><i class="fa-solid fa-flag"></i></button>
                         <span id="mesajUyum" class="etiket" style="margin-left:auto;"></span>
                     </div>
                     <div class="mesaj-listesi" id="mesajListesi"></div>
@@ -180,6 +203,10 @@
                 <div class="profil-isim" id="profilIsim">-</div>
                 <div class="profil-email" id="profilEmail">-</div>
             </div>
+            
+            <button class="buton-red" style="width:100%; margin-bottom:15px; display:flex; justify-content:center; align-items:center; gap:8px; font-weight:bold; background-color:#ef4444;" onclick="document.getElementById('hesapSilModal').classList.remove('gizli')">
+                <i class="fa-solid fa-trash"></i> Hesabımı Sil
+            </button>
             <div class="kart">
                 <div class="form-grubu">
                     <label>Görünen İsim:</label>
@@ -213,9 +240,6 @@
                     <p style="color:var(--yazi-ikincil);text-align:center;padding:10px;">Yükleniyor...</p>
                 </div>
             </div>
-            <button class="buton-red" style="width:100%;">
-                <i class="fa-solid fa-trash"></i> Hesabımı Sil
-            </button>
         </div>
 
         <!-- ALT GEZİNME -->
@@ -250,9 +274,61 @@
     </section>
 
     <!-- SCRIPTS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
-    <script src="app.js?ver=4"></script>
+    <!-- Javascript Dosyaları -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js" defer></script>
+    <script src="app.js?ver=4" defer></script>
+
+    <!-- Şikayet Modalı -->
+    <div id="sikayetModal" class="gizli" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center;">
+        <div class="kart" style="width:90%; max-width:400px;">
+            <h3 style="margin-bottom:15px; color:var(--kirmizi);"><i class="fa-solid fa-flag"></i> Kullanıcıyı Şikayet Et</h3>
+            <div class="form-grubu">
+                <label>Şikayet Nedeni:</label>
+                <select id="sikayetKategori">
+                    <option value="uygunsuz_davranis">Uygunsuz Davranış / Mesaj</option>
+                    <option value="gelmeme">Buluşmaya Gelmedi</option>
+                    <option value="spam">Spam / Reklam</option>
+                    <option value="sahte_profil">Sahte Profil</option>
+                    <option value="diger">Diğer</option>
+                </select>
+            </div>
+            <div class="form-grubu">
+                <label>Açıklama (Zorunlu, min 10 karakter):</label>
+                <textarea id="sikayetAciklama" rows="3" placeholder="Lütfen olayı detaylıca açıklayın..."></textarea>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="buton-red" style="flex:1;" onclick="sikayetGonder()">Gönder</button>
+                <button class="ana-buton" style="flex:1; background:var(--arkaplan-ikincil); color:var(--yazi);" onclick="document.getElementById('sikayetModal').classList.add('gizli')">İptal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hesap Silme Onay Modalı -->
+    <div id="hesapSilModal" class="gizli" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center;">
+        <div class="kart" style="width:90%; max-width:400px; border:1px solid var(--kirmizi);">
+            <h3 style="margin-bottom:15px; color:var(--kirmizi);"><i class="fa-solid fa-triangle-exclamation"></i> Hesabı Sil</h3>
+            <p style="font-size:0.9rem; color:var(--yazi-ikincil); margin-bottom:15px;">Hesabınızı ve tüm verilerinizi (mesajlar, eşleşmeler, konum geçmişi) kalıcı olarak silmek üzeresiniz. Lütfen ayrılma nedeninizi belirtin:</p>
+            <div class="form-grubu">
+                <label>Neden Ayrılıyorsun?</label>
+                <select id="hesapSilNeden">
+                    <option value="uygulamayi_begenmedim">Uygulamayı beğenmedim</option>
+                    <option value="guvenlik_endisesi">Güvenlik / Gizlilik endişesi</option>
+                    <option value="arkadas_bulamadim">Aradığımı bulamadım</option>
+                    <option value="kullanimi_zor">Kullanımı karmaşık geldi</option>
+                    <option value="diger">Diğer / Belirtmek İstemiyorum</option>
+                </select>
+            </div>
+            <div class="form-grubu">
+                <label>Bize bir not bırakın (Opsiyonel):</label>
+                <textarea id="hesapSilAciklama" rows="2" placeholder="Gelişmemiz için öneriniz var mı?"></textarea>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="buton-red" style="flex:1;" onclick="hesabiKalicıOlarakSil()">Kalıcı Olarak Sil</button>
+                <button class="ana-buton" style="flex:1; background:var(--arkaplan-ikincil); color:var(--yazi);" onclick="document.getElementById('hesapSilModal').classList.add('gizli')">Vazgeç</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

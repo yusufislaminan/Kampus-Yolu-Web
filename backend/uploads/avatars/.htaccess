@@ -1,7 +1,0 @@
-# PHP ve script çalıştırmayı engelle - Güvenlik izolasyonu
-<FilesMatch "\.(?:php|phtml|php3|php4|php5|phps|cgi|pl|py|sh|bash)$">
-    Require all denied
-</FilesMatch>
-Options -ExecCGI
-RemoveHandler .php .phtml
-AddType application/octet-stream .php .phtml

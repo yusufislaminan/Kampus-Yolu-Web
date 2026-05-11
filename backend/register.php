@@ -52,7 +52,8 @@ try {
     $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, display_name, gender, role) VALUES (?, ?, ?, ?, ?)');
     $stmt->execute([$email, $hash, $displayName ?: null, $gender, 'user']);
 
-    json_response(200, ['success' => true]);
+    $userId = (int) $pdo->lastInsertId();
+    json_response(200, ['success' => true, 'userId' => $userId]);
 } catch (Throwable $e) {
     error_log('Register error: ' . $e->getMessage());
     json_response(500, ['success' => false, 'error' => 'Registration failed: ' . $e->getMessage()]);

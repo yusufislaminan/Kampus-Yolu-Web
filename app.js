@@ -1,4 +1,4 @@
-// ======= KAMPÃœS YOLU - ANA UYGULAMA =======
+// ======= KAMPÜS YOLU - ANA UYGULAMA =======
 
 // --- GLOBAL STATE ---
 let aktifKullanici = null; // { userId, email, display_name, gender, interests, role }
@@ -12,9 +12,10 @@ let haritaSecimModu = false;
 let seciliHobiler = new Set();
 let tumHobiler = {};
 let aktifMesajMatch = null;
+let aktifSohbetUserId = null;
 let mesajPollingInterval = null;
 
-// --- 1. TEMA YÃ–NETÄ°MÄ° ---
+// --- 1. TEMA YÖNETİMİ ---
 const temaDegistirBtn = document.getElementById('temaDegistirBtn');
 const htmlEtiketi = document.documentElement;
 
@@ -66,7 +67,7 @@ function apiFetch(endpoint, options = {}) {
                 data = text ? JSON.parse(text) : null;
             } catch (err) {
                 console.error('❌ JSON Parse Error:', text);
-                throw new Error('Beklenmeyen backend yanÄ±tÄ±: ' + text);
+                throw new Error('Beklenmeyen backend yanıtı: ' + text);
             }
             console.log('✅ API Response:', endpoint, data);
             if (!response.ok) {
@@ -82,27 +83,38 @@ function apiFetch(endpoint, options = {}) {
         });
 }
 
-// --- 2. DOÄRULAMA ---
+// --- 2. DOĞRULAMA ---
 function simpleValidateEmail(e) {
-    if (typeof e !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return { ok: false, message: 'E-posta formatÄ± hatalÄ±.' };
+    if (typeof e !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return { ok: false, message: 'E-posta formatı hatalı.' };
     return { ok: true };
 }
 function simpleValidatePassword(p) {
-    if (typeof p !== 'string') return { ok: false, message: 'Åifre geÃ§ersiz.' };
-    if (p.length < 8) return { ok: false, message: 'Åifre en az 8 karakter olmalÄ±.' };
-    if (!/[A-Z]/.test(p)) return { ok: false, message: 'Åifre en az 1 bÃ¼yÃ¼k harf iÃ§ermeli.' };
-    if (!/[a-z]/.test(p)) return { ok: false, message: 'Åifre en az 1 kÃ¼Ã§Ã¼k harf iÃ§ermeli.' };
-    if (!/[0-9]/.test(p)) return { ok: false, message: 'Åifre en az 1 rakam iÃ§ermeli.' };
+    if (typeof p !== 'string') return { ok: false, message: 'Şifre geçersiz.' };
+    if (p.length < 8) return { ok: false, message: 'Şifre en az 8 karakter olmalı.' };
+    if (!/[A-Z]/.test(p)) return { ok: false, message: 'Şifre en az 1 büyük harf içermeli.' };
+    if (!/[a-z]/.test(p)) return { ok: false, message: 'Şifre en az 1 küçük harf içermeli.' };
+    if (!/[0-9]/.test(p)) return { ok: false, message: 'Şifre en az 1 rakam içermeli.' };
     return { ok: true };
 }
 
-// --- 3. GÄ°RÄ°Å ---
-const girisFormu = document.getElementById('girisFormu');
+// --- 3. GİRİŞ ---
+const kayitEkrani = document.getElementById('kayitEkrani');
 const girisEkrani = document.getElementById('girisEkrani');
+
+document.getElementById('kayitDocType').addEventListener('change', function(e) {
+    const uploadGrubu = document.getElementById('kayitDocUploadGrubu');
+    if (e.target.value) {
+        uploadGrubu.classList.remove('gizli');
+    } else {
+        uploadGrubu.classList.add('gizli');
+        document.getElementById('kayitDocument').value = '';
+    }
+});
 const anaUygulama = document.getElementById('anaUygulama');
 const adminPaneli = document.getElementById('adminPaneli');
 const kullaniciProfiliMini = document.getElementById('kullaniciProfiliMini');
 
+const girisFormu = document.getElementById('girisFormu');
 girisFormu.addEventListener('submit', function(e) {
     e.preventDefault();
     const eposta = document.getElementById('epostaGirdisi').value;
@@ -119,7 +131,7 @@ girisFormu.addEventListener('submit', function(e) {
     })
     .then(data => {
         if (!data?.success) {
-            alert('E-posta veya ÅŸifre hatalÄ±.');
+            alert('E-posta veya şifre hatalı.');
             girisEkrani.classList.remove('gizli');
             kullaniciProfiliMini.classList.add('gizli');
             return;
@@ -128,13 +140,18 @@ girisFormu.addEventListener('submit', function(e) {
             userId: data.userId, email: data.email,
             display_name: data.display_name || '', gender: data.gender || 'belirtmek_istemiyorum',
             profile_pic: data.profile_pic || null,
+            trust_level: data.trust_level || 0,
             interests: data.interests || [], role: data.role
         };
+        
+        const isVerified = aktifKullanici.trust_level >= 2;
+        const tickHtml = isVerified ? ' <i class="fa-solid fa-circle-check text-yesil" title="Onaylı Hesap"></i>' : '';
         document.getElementById('aktifKullaniciAdi').innerHTML =
-            (aktifKullanici.display_name || aktifKullanici.email) + ' <i class="fa-solid fa-circle-check text-yesil"></i>';
+            (aktifKullanici.display_name || aktifKullanici.email) + tickHtml;
 
         if (data.role === 'admin') {
-            adminPaneli.classList.remove('gizli');
+            window.location.href = 'admin/dashboard.php';
+            return;
         } else {
             anaUygulama.classList.remove('gizli');
             haritayiYukle();
@@ -146,7 +163,7 @@ girisFormu.addEventListener('submit', function(e) {
     })
     .catch(e => {
         console.error('Login error:', e);
-        alert('GiriÅŸ baÅŸarÄ±sÄ±z. Backend baÄŸlantÄ±sÄ±nÄ± kontrol edin.\n' + e.message);
+        alert('Giriş başarısız. Backend bağlantısını kontrol edin.\n' + e.message);
         girisEkrani.classList.remove('gizli');
         kullaniciProfiliMini.classList.add('gizli');
     });
@@ -182,33 +199,58 @@ if (kayitFormu) {
         if (!eposta) return alert('E-posta gerekli.');
         if (!simpleValidateEmail(eposta).ok) return alert(simpleValidateEmail(eposta).message);
         if (!simpleValidatePassword(sifre).ok) return alert(simpleValidatePassword(sifre).message);
-        if (sifre !== sifreTekrar) return alert('Åifreler eÅŸleÅŸmiyor.');
+        if (sifre !== sifreTekrar) return alert('Åifreler eşleşmiyor.');
 
         apiFetch('register.php', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ eposta, sifre, sifreTekrar, display_name: isim, gender: cinsiyet })
         })
-        .then(data => {
-            alert('KayÄ±t baÅŸarÄ±lÄ±! GiriÅŸ yapabilirsiniz.');
+        .then(async data => {
+            const docType = document.getElementById('kayitDocType').value;
+            const docFile = document.getElementById('kayitDocument').files[0];
+            
+            if (docType && docFile) {
+                const formData = new FormData();
+                formData.append('userId', data.userId);
+                formData.append('doc_type', docType);
+                formData.append('document', docFile);
+                
+                try {
+                    const uploadRes = await fetch('backend/upload_document.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const uploadData = await uploadRes.json();
+                    if (!uploadData.success) {
+                        alert('Kayıt başarılı ancak belge yüklenemedi: ' + (uploadData.error || 'Bilinmeyen hata'));
+                    } else {
+                        alert('Kayıt ve belge yükleme başarılı! Giriş yapabilirsiniz.');
+                    }
+                } catch (err) {
+                    alert('Kayıt başarılı ancak belge yüklenirken ağ hatası oluştu.');
+                }
+            } else {
+                alert('Kayıt başarılı! Giriş yapabilirsiniz.');
+            }
             kayitKarti.classList.add('gizli');
         })
         .catch(e => {
             console.error('Register error:', e);
-            alert('KayÄ±t isteÄŸi baÅŸarÄ±sÄ±z.\n' + e.message);
+            alert('Kayıt isteği başarısız.\n' + e.message);
         });
     });
 }
 
-// --- 4. HARÄ°TA ---
+// --- 4. HARİTA ---
 function haritayiYukle() {
     if (kampusHaritasi) return;
     const varsayilan = [39.905, 41.240];
     kampusHaritasi = L.map('haritaAlani').setView(varsayilan, 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: 'Â© OpenStreetMap | KampÃ¼s Yolu'
+        attribution: 'Â© OpenStreetMap | Kampüs Yolu'
     }).addTo(kampusHaritasi);
 
-    // Harita tÄ±klama - konum seÃ§me modu
+    // Harita tıklama - konum seçme modu
     kampusHaritasi.on('click', function(e) {
         if (!haritaSecimModu) return;
         benimKonumum = { lat: e.latlng.lat, lng: e.latlng.lng };
@@ -216,18 +258,18 @@ function haritayiYukle() {
         document.getElementById('haritaSecimUyari').classList.add('gizli');
         benimMarkerGuncelle();
         konumGuncelle(benimKonumum.lat, benimKonumum.lng);
-        konumDurumGuncelle('basarili', 'Konum haritadan seÃ§ildi');
+        konumDurumGuncelle('basarili', 'Konum haritadan seçildi');
     });
 }
 
-// --- 5. KONUM YÃ–NETÄ°MÄ° ---
+// --- 5. KONUM YÖNETİMİ ---
 function konumBaslat() {
     if (!navigator.geolocation) {
-        konumDurumGuncelle('hata', 'TarayÄ±cÄ± konum desteklemiyor');
+        konumDurumGuncelle('hata', 'Tarayıcı konum desteklemiyor');
         haritadanSecModuAc();
         return;
     }
-    konumDurumGuncelle('yukleniyor', 'Konum alÄ±nÄ±yor...');
+    konumDurumGuncelle('yukleniyor', 'Konum alınıyor...');
     konumWatchId = navigator.geolocation.watchPosition(
         pos => {
             benimKonumum = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -236,8 +278,8 @@ function konumBaslat() {
             konumDurumGuncelle('basarili', 'Konum aktif');
         },
         err => {
-            console.warn('Konum hatasÄ±:', err.message);
-            konumDurumGuncelle('hata', 'Konum alÄ±namadÄ±');
+            console.warn('Konum hatası:', err.message);
+            konumDurumGuncelle('hata', 'Konum alınamadı');
             haritadanSecModuAc();
         },
         { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
@@ -247,7 +289,7 @@ function konumBaslat() {
 function haritadanSecModuAc() {
     haritaSecimModu = true;
     document.getElementById('haritaSecimUyari').classList.remove('gizli');
-    konumDurumGuncelle('hata', 'Haritaya tÄ±klayarak konum seÃ§in');
+    konumDurumGuncelle('hata', 'Haritaya tıklayarak konum seçin');
 }
 function haritaSecimIptal() {
     haritaSecimModu = false;
@@ -287,7 +329,7 @@ function benimMarkerGuncelle() {
         benimMarkerim.setLatLng([benimKonumum.lat, benimKonumum.lng]).setIcon(icon);
     } else {
         benimMarkerim = L.marker([benimKonumum.lat, benimKonumum.lng], { icon })
-            .addTo(kampusHaritasi).bindPopup('<b>Sen buradasÄ±n</b>');
+            .addTo(kampusHaritasi).bindPopup('<b>Sen buradasın</b>');
         kampusHaritasi.setView([benimKonumum.lat, benimKonumum.lng], 15);
     }
 }
@@ -297,7 +339,7 @@ function konumGuncelle(lat, lng) {
     apiFetch('update_location.php', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: aktifKullanici.userId, latitude: lat, longitude: lng })
-    }).catch(e => console.error('Konum gÃ¼ncelleme hatasÄ±:', e));
+    }).catch(e => console.error('Konum güncelleme hatası:', e));
 }
 
 // --- 6. YAKINLARI BULMA (POLLING) ---
@@ -311,14 +353,14 @@ if (yaricapSlider) {
 }
 
 document.getElementById('yakindakileriBulBtn')?.addEventListener('click', () => {
-    if (!benimKonumum) return alert('Ã–nce konumunuzun alÄ±nmasÄ±nÄ± bekleyin veya haritadan seÃ§in.');
+    if (!benimKonumum) return alert('Önce konumunuzun alınmasını bekleyin veya haritadan seçin.');
     yakinlariGetir();
-    // 3 saniyelik polling baÅŸlat
+    // 3 saniyelik polling başlat
     if (pollingInterval) clearInterval(pollingInterval);
     pollingInterval = setInterval(yakinlariGetir, 3000);
 });
 
-// Sayfa gÃ¶rÃ¼nÃ¼rlÃ¼ÄŸÃ¼: gizliyken polling durdur
+// Sayfa görünürlüğü: gizliyken polling durdur
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
 });
@@ -335,7 +377,7 @@ function yakinlariGetir() {
     .then(data => {
         haritaMarkerlariGuncelle(data.users || []);
     })
-    .catch(e => console.error('YakÄ±n arama hatasÄ±:', e));
+    .catch(e => console.error('Yakın arama hatası:', e));
 }
 
 function uyumRengi(score) {
@@ -384,7 +426,7 @@ function haritaMarkerlariGuncelle(users) {
             <div class="uyum-bar-bg"><div class="uyum-bar" style="width:${u.compatibility}%;background:${renk};"></div></div>
             <div class="popup-etiketler">${hobilerHtml}</div>
             <div class="popup-butonlar">
-                <button class="popup-buton" onclick="eslesmeGonder(${u.id})"><i class="fa-solid fa-handshake"></i> EÅŸleÅŸ</button>
+                <button class="popup-buton" onclick="eslesmeGonder(${u.id})"><i class="fa-solid fa-handshake"></i> Eşleş</button>
             </div>
         </div>`;
 
@@ -398,7 +440,7 @@ function haritaMarkerlariGuncelle(users) {
     });
 }
 
-// --- 7. EÅžLEÅžME ---
+// --- 7. EŞLEŞME ---
 function eslesmeGonder(targetId) {
     if (!aktifKullanici) return;
     apiFetch('create_match.php', {
@@ -406,13 +448,13 @@ function eslesmeGonder(targetId) {
         body: JSON.stringify({ userId: aktifKullanici.userId, targetUserId: targetId })
     })
     .then(data => {
-        alert('EÅŸleÅŸme isteÄŸi gÃ¶nderildi!');
+        alert('Eşleşme isteği gönderildi!');
         if (data.midpoint && benimKonumum) {
             ortaNoktaGoster(benimKonumum, data.midpoint);
         }
         eslesmelerYukle();
     })
-    .catch(() => alert('EÅŸleÅŸme hatasÄ±.'));
+    .catch(() => alert('Eşleşme hatası.'));
 }
 
 function ortaNoktaGoster(konum1, konum2) {
@@ -432,7 +474,7 @@ function ortaNoktaGoster(konum1, konum2) {
         className: '', iconSize: [20, 20], iconAnchor: [10, 10]
     });
     L.marker([mid.lat, mid.lng], { icon }).addTo(kampusHaritasi)
-        .bindPopup('<b>BuluÅŸma NoktasÄ±</b><br>Ä°kinizin orta noktasÄ±').openPopup();
+        .bindPopup('<b>Buluşma Noktası</b><br>İkinizin orta noktası').openPopup();
 
     L.polyline([[konum1.lat, konum1.lng], [mid.lat, mid.lng]], {
         color: '#f59e0b', weight: 3, dashArray: '8,8', opacity: 0.8
@@ -442,19 +484,48 @@ function ortaNoktaGoster(konum1, konum2) {
 // --- 8. EŞLEŞMELER LİSTESİ ---
 function eslesmelerYukle() {
     if (!aktifKullanici) return;
-    apiFetch('get_matches.php', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: aktifKullanici.userId })
-    })
-    .then(data => {
+    
+    Promise.all([
+        apiFetch('get_matches.php', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: aktifKullanici.userId })
+        }),
+        apiFetch('get_warnings.php', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: aktifKullanici.userId })
+        }).catch(e => ({ warnings: [], unreadCount: 0 }))
+    ])
+    .then(([matchesData, warningsData]) => {
         const alan = document.getElementById('istekListesiAlani');
-        const matches = data.matches || [];
-        let toplamOkunmamis = 0;
+        const matches = matchesData.matches || [];
+        const warnings = warningsData.warnings || [];
+        let toplamOkunmamis = (warningsData.unreadCount || 0);
+        let htmlStr = '';
+
+        // Uyarıları Göster
+        if (warnings.length > 0) {
+            htmlStr += '<h4 style="margin-bottom:10px; color:var(--kirmizi);"><i class="fa-solid fa-triangle-exclamation"></i> Sistem Uyarıları</h4>';
+            warnings.forEach(w => {
+                const z = new Date(w.created_at).toLocaleDateString('tr-TR');
+                const badge = w.is_read == 0 ? '<span class="bildirim" style="position:static;">Yeni</span>' : '';
+                const isInfo = w.severity === 'info';
+                const borderColor = isInfo ? '#3b82f6' : 'var(--kirmizi)';
+                const title = isInfo ? 'Sistem Bilgilendirmesi' : 'Admin Uyarısı';
+                htmlStr += `<div class="kart" style="border-left:4px solid ${borderColor}; margin-bottom:15px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <strong style="color:${borderColor};">${title} ${badge}</strong>
+                        <small style="color:var(--yazi-ikincil);">${z}</small>
+                    </div>
+                    <p style="font-size:0.9rem;">${w.message}</p>
+                </div>`;
+            });
+            htmlStr += '<h4 style="margin:20px 0 10px 0;"><i class="fa-solid fa-users"></i> Eşleşmelerim</h4>';
+        }
 
         if (matches.length === 0) {
-            alan.innerHTML = '<p style="text-align:center;color:var(--yazi-ikincil);padding:40px 0;"><i class="fa-solid fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px;"></i>Henüz eşleşme yok.</p>';
+            htmlStr += '<p style="text-align:center;color:var(--yazi-ikincil);padding:40px 0;"><i class="fa-solid fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px;"></i>Henüz eşleşme yok.</p>';
         } else {
-            alan.innerHTML = matches.map(m => {
+            htmlStr += matches.map(m => {
                 toplamOkunmamis += m.unreadCount || 0;
                 const renk = uyumRengi(m.compatibility);
                 const avatarHtml = m.otherProfilePic
@@ -465,7 +536,7 @@ function eslesmelerYukle() {
                 let kartOnclick = '';
                 if (m.status === 'accepted') {
                     durumHtml = '<span class="esleme-durum-badge aktif"><i class="fa-solid fa-check-circle"></i> Aktif</span>';
-                    kartOnclick = `onclick="mesajAc(${m.matchId},'${(m.otherDisplayName||'').replace(/'/g,"\\\'")}',${m.compatibility},'accepted')"`;
+                    kartOnclick = `onclick="mesajAc(${m.matchId},'${(m.otherDisplayName||'').replace(/'/g,"\\\'")}',${m.compatibility},'accepted',${m.otherUserId})"`;
                 } else if (m.status === 'pending' && !m.isRequester) {
                     durumHtml = `<div class="kart-butonlari" style="margin-top:8px;">
                         <button class="buton-onay" onclick="event.stopPropagation();eslesmeKabulEt(${m.matchId})"><i class="fa-solid fa-check"></i> Kabul Et</button>
@@ -490,6 +561,7 @@ function eslesmelerYukle() {
                 </div>`;
             }).join('');
         }
+        alan.innerHTML = htmlStr;
         const badge = document.getElementById('mesajBildirim');
         if (toplamOkunmamis > 0) { badge.textContent = toplamOkunmamis; badge.classList.remove('gizli'); }
         else { badge.classList.add('gizli'); }
@@ -503,12 +575,13 @@ function eslesmelerYukle() {
 }
 
 // --- 9. MESAJLAŞMA ---
-function mesajAc(matchId, isim, uyum, status) {
+function mesajAc(matchId, isim, uyum, status, otherUserId) {
     if (status !== 'accepted') {
         alert('Mesajlaşma için eşleşmenin kabul edilmesi gerekir.');
         return;
     }
     aktifMesajMatch = matchId;
+    aktifSohbetUserId = otherUserId;
     document.getElementById('isteklerListeGorunumu').classList.add('gizli');
     document.getElementById('mesajGorunumu').classList.remove('gizli');
     document.getElementById('mesajKarsiIsim').textContent = isim;
@@ -524,6 +597,7 @@ function mesajAc(matchId, isim, uyum, status) {
 
 function mesajKapat() {
     aktifMesajMatch = null;
+    aktifSohbetUserId = null;
     if (mesajPollingInterval) clearInterval(mesajPollingInterval);
     document.getElementById('mesajGorunumu').classList.add('gizli');
     document.getElementById('isteklerListeGorunumu').classList.remove('gizli');
@@ -551,7 +625,7 @@ function mesajlariYukle() {
         });
         if (data.messages?.length > 0) liste.scrollTop = liste.scrollHeight;
     })
-    .catch(e => console.error('Mesaj yÃ¼kleme hatasÄ±:', e));
+    .catch(e => console.error('Mesaj yükleme hatası:', e));
 }
 
 function mesajGonder() {
@@ -567,10 +641,10 @@ function mesajGonder() {
     .then(data => {
         mesajlariYukle();
     })
-    .catch(e => alert('Mesaj gÃ¶nderme hatasÄ±.\n' + e.message));
+    .catch(e => alert('Mesaj gönderme hatası.\n' + e.message));
 }
 
-// Enter ile mesaj gÃ¶nder
+// Enter ile mesaj gönder
 document.getElementById('mesajInput')?.addEventListener('keypress', e => {
     if (e.key === 'Enter') mesajGonder();
 });
@@ -617,7 +691,7 @@ function hobileriYukle() {
         alan.innerHTML = html;
     })
     .catch(() => {
-        document.getElementById('hobiSecimAlani').innerHTML = '<p style="color:var(--kirmizi);">Hobiler yÃ¼klenemedi.</p>';
+        document.getElementById('hobiSecimAlani').innerHTML = '<p style="color:var(--kirmizi);">Hobiler yüklenemedi.</p>';
     });
 }
 
@@ -651,7 +725,7 @@ document.getElementById('profilKaydetBtn')?.addEventListener('click', () => {
     })
     .catch(e => {
         console.error('Profile save error:', e);
-        alert('Profil kaydetme hatasÄ±.\n' + e.message);
+        alert('Profil kaydetme hatası.\n' + e.message);
     });
 });
 
@@ -771,4 +845,57 @@ function engellenenlerYukle() {
         }
     })
     .catch(() => { alan.innerHTML = '<p style="color:var(--kirmizi);">Yüklenemedi.</p>'; });
+}
+
+// --- 15. ŞİKAYET ETME VE HESAP SİLME ---
+let sikayetEdilecekKullaniciId = null;
+function sikayetModalAc() {
+    if (!aktifSohbetUserId) return alert("Sohbet açık değil!");
+    sikayetEdilecekKullaniciId = aktifSohbetUserId;
+    document.getElementById('sikayetModal').classList.remove('gizli');
+    document.getElementById('sikayetAciklama').value = '';
+}
+
+function sikayetGonder() {
+    if (!sikayetEdilecekKullaniciId) return;
+    const kategori = document.getElementById('sikayetKategori').value;
+    const aciklama = document.getElementById('sikayetAciklama').value.trim();
+    if (!aciklama) return alert("Lütfen şikayetiniz hakkında kısa bir açıklama yazın.");
+
+    apiFetch('submit_complaint.php', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            userId: aktifKullanici.userId,
+            reportedId: sikayetEdilecekKullaniciId,
+            category: kategori,
+            description: aciklama
+        })
+    }).then(res => {
+        alert("Şikayetiniz yöneticilere iletildi. İncelenecektir.");
+        document.getElementById('sikayetModal').classList.add('gizli');
+    }).catch(e => {
+        alert("Hata oluştu: " + e.message);
+    });
+}
+
+function hesabiKalicıOlarakSil() {
+    if (!confirm("Bu işlem GERİ ALINAMAZ! Tüm mesajlarınız, eşleşmeleriniz ve hesabınız silinecektir. Onaylıyor musunuz?")) return;
+    
+    const neden = document.getElementById('hesapSilNeden').value;
+    const aciklama = document.getElementById('hesapSilAciklama').value.trim();
+
+    apiFetch('delete_account.php', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            userId: aktifKullanici.userId,
+            reason_category: neden,
+            reason_text: aciklama
+        })
+    }).then(res => {
+        alert("Hesabınız ve tüm verileriniz kalıcı olarak silindi. Hoşçakalın.");
+        document.getElementById('hesapSilModal').classList.add('gizli');
+        cikisYap();
+    }).catch(e => {
+        alert("Hesap silinirken hata oluştu: " + e.message);
+    });
 }

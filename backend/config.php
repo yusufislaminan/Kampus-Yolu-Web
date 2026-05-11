@@ -12,5 +12,6 @@ return [
     'pass' => '',
     'charset' => 'utf8mb4',
     'upload_path' => 'C:\\KampusYoluUploads\\avatars\\',
+    'documents_path' => 'C:\\KampusYoluUploads\\documents\\',
 ];
 

@@ -39,6 +39,25 @@ try {
         ':uid' => $userId,
     ]);
 
+    // Isı haritası için konum geçmişi kaydet (her 5 dakikada bir)
+    try {
+        $stCheck = $pdo->prepare(
+            "SELECT id FROM location_history 
+             WHERE user_id = ? AND recorded_at > NOW() - INTERVAL 5 MINUTE 
+             LIMIT 1"
+        );
+        $stCheck->execute([$userId]);
+        if (!$stCheck->fetch()) {
+            $stHist = $pdo->prepare(
+                "INSERT INTO location_history (user_id, location) 
+                 VALUES (?, ST_GeomFromText(?, 4326))"
+            );
+            $stHist->execute([$userId, $pointWkt]);
+        }
+    } catch (Throwable $ignored) {
+        // location_history tablosu yoksa sessizce devam et
+    }
+
     json_response(200, ['success' => true]);
 } catch (Throwable $e) {
     error_log('Location update error: ' . $e->getMessage());

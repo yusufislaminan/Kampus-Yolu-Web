@@ -145,4 +145,14 @@ INSERT IGNORE INTO interests (category, name, icon) VALUES
 ('yasam', 'Doğa Sever', '🌿'),
 ('yasam', 'Gece Kuşu', '🦉'),
 ('yasam', 'Erken Kalkan', '🌅'),
-('yasam', 'Vegan/Vejetaryen', '🥗');
+-- ============================================
+-- HESAP SİLME NEDENLERİ
+-- ============================================
+CREATE TABLE IF NOT EXISTS deletion_reasons (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_email VARCHAR(255) NOT NULL,
+  reason_category VARCHAR(100) NOT NULL,
+  reason_text TEXT DEFAULT NULL,
+  deleted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB;
